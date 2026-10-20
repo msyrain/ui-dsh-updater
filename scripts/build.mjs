@@ -22,7 +22,7 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { mkdir, rm } from 'node:fs/promises'
-import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { rolldown } from 'rolldown'
 import { transform } from 'lightningcss'
@@ -54,12 +54,14 @@ const CSS_VIRTUAL_SUFFIX = '.mjs'
 
 /**
  * 从 git 读取当前 commit，用于面板在 /status 不可用时的版本回退展示。
- * 仓库路径取 `DSH_REPO` 环境变量，其次用默认的 D:\deepseek-harness。
- * 读不到就返回空串——此时产物里 `process.env` 被替换成 `{}`，该字段为 undefined。
+ *
+ * 只在**显式**设置 `DSH_REPO` / `DSH_UPDATER_REPO` 时才烙进产物：默认不读任何固定路径，
+ * 否则同一份源码在作者机器和 CI 上会产出不同的字节，`lib/` 的「已提交产物与源码一致」
+ * 校验就没法做（而一份公开仓库的产物也不该带着某台机器的 checkout 状态）。
  * @returns 7 位短 commit，或空串。
  */
 function detectCommit() {
-  const candidates = [process.env.DSH_REPO, process.env.DSH_UPDATER_REPO, 'D:\\deepseek-harness']
+  const candidates = [process.env.DSH_REPO, process.env.DSH_UPDATER_REPO]
     .filter((dir) => typeof dir === 'string' && dir.length > 0)
   for (const dir of candidates) {
     if (!existsSync(dir)) continue
@@ -98,6 +100,19 @@ function styleFile(source, importer) {
 }
 
 /**
+ * 把包内绝对路径换成 POSIX 分隔符的相对路径。
+ *
+ * 虚拟模块 id 会出现在产物的 region 注释里，用绝对路径等于把作者机器的目录结构
+ * 写进公开发布物，同一份源码在不同目录构建出的字节也就不同——「已提交产物与源码
+ * 一致」的校验会因此永远失败。
+ * @param absolute - 包内绝对路径。
+ * @returns 相对包根的 POSIX 路径。
+ */
+function packageRelativePath(absolute) {
+  return relative(PACKAGE_ROOT, absolute).replaceAll('\\', '/')
+}
+
+/**
  * 在包内编译样式：`x.module.css` 产出类名映射，普通 `.css` 只注入样式。
  * resolveId 用 `order: 'pre'`，保证在 rolldown 自带样式处理之前把它变成虚拟模块。
  * @param pluginId - 包名，写进注入的 style 标签，便于调试定位来源。
@@ -111,25 +126,33 @@ function cssPlugin(pluginId) {
       handler(source, importer) {
         if (!source.endsWith('.css')) return null
         if (importer === undefined) return null
-        return CSS_VIRTUAL_PREFIX + styleFile(source, importer) + CSS_VIRTUAL_SUFFIX
+        // 虚拟 id 用包内相对路径：它会进产物的 region 注释，绝对路径会破坏可复现性。
+        return CSS_VIRTUAL_PREFIX + packageRelativePath(styleFile(source, importer)) + CSS_VIRTUAL_SUFFIX
       },
     },
     async load(virtualId) {
       if (!virtualId.startsWith(CSS_VIRTUAL_PREFIX)) return null
-      const fileId = virtualId.slice(CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length)
+      const relativeId = virtualId.slice(CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length)
+      const fileId = join(PACKAGE_ROOT, relativeId)
       this.addWatchFile(fileId)
       const code = readFileSync(fileId)
-      const cssModules = fileId.endsWith('.module.css')
+      const cssModules = relativeId.endsWith('.module.css')
       const compiled = transform({
         filename: fileId,
         code,
         minify: true,
-        ...(cssModules ? { cssModules: { pattern: '[hash]_[local]' } } : {}),
+        // 类名前缀固定，不用 lightningcss 的 [hash]：那个 hash 取自文件路径，
+        // 换个目录构建类名就变，产物字节随之不同。
+        ...(cssModules ? { cssModules: { pattern: 'dshUpdater_[local]' } } : {}),
       })
       let classMap
       if (cssModules) {
         classMap = {}
-        for (const [local, exported] of Object.entries(compiled.exports ?? {})) classMap[local] = exported.name
+        // 按类名排序再写入：lightningcss 的 exports 遍历顺序在进程间并不稳定（哈希表序），
+        // 直接照抄会让同一份源码产出字节不同的产物。
+        for (const local of Object.keys(compiled.exports ?? {}).sort()) {
+          classMap[local] = compiled.exports[local].name
+        }
       }
       return styleModule(pluginId, fileId, compiled.code.toString(), classMap)
     },
@@ -202,6 +225,13 @@ function assertClientArtifact() {
   if (!flat(code).endsWith('return module.exports; } });')) problems.push('结尾不是工厂的收尾语句')
   if (/process\.env/u.test(code)) problems.push('仍残留 process.env（transform.define 未生效）')
   if (/import\.meta/u.test(code)) problems.push('仍残留 import.meta（CJS 工厂无法承载）')
+  // 可复现性：作者机器的绝对路径一旦进产物，同一份源码在不同目录构建出的字节就不同，
+  // 「已提交产物与源码一致」的校验（CI）也就永远失败。
+  if (code.includes(PACKAGE_ROOT)) problems.push('产物里含有本机绝对路径（CSS 虚拟模块 id 或 region 注释泄漏）')
+  const escapedRoot = JSON.stringify(PACKAGE_ROOT).slice(1, -1)
+  if (readFileSync(join(LIB_DIR, 'client.js.map'), 'utf8').includes(escapedRoot)) {
+    problems.push('sourcemap 里含有本机绝对路径')
+  }
   if (problems.length > 0) throw new Error(`客户端产物自检失败：\n  - ${problems.join('\n  - ')}`)
 }
 
