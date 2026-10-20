@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-dsh-updater",
   "description": "DSH 版本检测与一键升级插件：自动检测最新版本，入口固定在设置上方。",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "engines": {
     "node": ">=22"
   },
