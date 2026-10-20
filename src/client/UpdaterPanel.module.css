@@ -1,0 +1,193 @@
+.root {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--theme-fg-1, #d8dee9);
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.root:hover {
+  background: var(--theme-bg-hover, rgba(255,255,255,0.06));
+}
+.rail {
+  justify-content: center;
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+}
+.label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: transparent;
+}
+.updateDot {
+  background: #e5484d;
+  box-shadow: 0 0 0 3px rgba(229,72,77,0.18);
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+}
+.panel {
+  position: relative;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  background: var(--theme-bg-1, #1d232e);
+  color: var(--theme-fg-1, #d8dee9);
+  border-radius: 12px;
+  border: 1px solid var(--theme-border-1, rgba(255,255,255,0.1));
+  padding: 18px 20px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+}
+.heading {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.intro {
+  margin: 0 0 14px;
+  color: var(--theme-fg-2, #9aa4b2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+}
+.rowKey {
+  color: var(--theme-fg-2, #9aa4b2);
+}
+.rowValue {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badgeUpdate {
+  background: rgba(229,72,77,0.16);
+  color: #ff7a7e;
+}
+.badgeOk {
+  background: rgba(70,191,110,0.16);
+  color: #6fdc8c;
+}
+/* 版本事实不全：中性灰，不能和「已是最新」的绿色混淆。 */
+.badgeUnknown {
+  background: rgba(154,164,178,0.16);
+  color: var(--theme-fg-2, #9aa4b2);
+}
+.muted {
+  color: var(--theme-fg-2, #9aa4b2);
+}
+.error {
+  color: #ff8a8a;
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  color: #fff;
+  background: #2f6fed;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.primary:hover {
+  background: #3b78ff;
+}
+.primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--theme-border-1, rgba(255,255,255,0.1));
+  background: transparent;
+  color: var(--theme-fg-1, #d8dee9);
+  font-size: 13px;
+  cursor: pointer;
+}
+.secondary:hover {
+  background: var(--theme-bg-hover, rgba(255,255,255,0.06));
+}
+.statusLine {
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+/* 弹窗就地降级时展示的错误详情（DialogBoundary 的 fallback）。 */
+.detail {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: var(--theme-fg-2, #9aa4b2);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 140px;
+  overflow: auto;
+}
+.link {
+  color: #6ea8ff;
+  text-decoration: none;
+}
+.link:hover {
+  text-decoration: underline;
+}

@@ -1,0 +1,24 @@
+# Normalize every text file to LF in the repository.
+#
+# The browser half is a single minified artifact committed to the repository
+# (lib/client.js); keeping the sources and that artifact LF-only makes the
+# committed bytes independent of the machine that built them, so a rebuild on
+# Windows does not show up as a whole-file diff.
+* text=auto eol=lf
+
+# Windows batch and PowerShell files are line-ending sensitive. The bundled
+# upgrade script is executed by Windows PowerShell 5.1, which wants CRLF.
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary assets must never be normalized.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+*.tgz binary

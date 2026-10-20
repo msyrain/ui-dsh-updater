@@ -1,0 +1,12 @@
+# 依赖
+node_modules/
+
+# 运行时产物：升级脚本把执行日志写在仓库根，它属于某次部署，不属于仓库
+*.log
+
+# 编辑器 / 操作系统噪声
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

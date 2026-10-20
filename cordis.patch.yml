@@ -1,0 +1,31 @@
+# The dsh-updater bundle patch: this package's own profile layer.
+#
+# A package named in the profile's `dsh.profile.bundles` contributes the patch
+# file its manifest declares as `dsh.bundle.patch`. The layers are applied in
+# bundles order, then the profile's own cordis.patch.yml, then any --patch
+# overlays, so a deployment restates any value it wants to own by targeting the
+# same row id in a later layer (a patch replaces the targeted row's whole
+# `config`).
+#
+# This layer only inserts the updater row, so installing the package is enough:
+# no file in the DSH repository is edited and no DSH rebuild is required.
+# `dsh plugin add` appends this package to `dsh.profile.bundles` automatically
+# because its manifest declares `dsh.bundle`.
+#
+# The other supported mode is `node install.mjs` at the package root: it links
+# this checkout into the profile and writes the SAME row into the profile's own
+# `cordis.patch.yml` (which is why it needs no profile dependency at all).
+# Use one mode or the other: both insert a row with the same id.
+
+- insert:
+    # Dual-face row: the node half registers the /api/dsh-updater routes, the
+    # browser half registers the sidebar.footer.action occupant that renders
+    # above the Settings entry. `repoPath` is deliberately absent: the node half
+    # defaults it to the server process's working directory, which is the DSH
+    # checkout when the service is started as `pnpm dsh web` from the repo root.
+    - id: ui-dsh-updater
+      name: '@deepseek-ai/dsh-client-ui-dsh-updater'
+      config:
+        githubRepo: 'deepseek-ai/deepseek-harness'
+        port: 3080
+        allowUpdate: true
