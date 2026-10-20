@@ -19,8 +19,9 @@
  *   副本不会跟随本目录的改动，改完必须跑 node sync.mjs。
  *
  * 两种策略都只改 profile 自己的 cordis.patch.yml，而且只动自己那段标记块，
- * 用户已有的其他 patch 原样保留。web profile 的 patchReload 是 live，所以 patch 行
- * 免重启即可挂载；插件代码本身的改动仍然需要重启服务（发布组合里模块热重载是关的）。
+ * 用户已有的其他 patch 原样保留。宿主在启动时装配 profile 的 patch 层，所以装完
+ * 需要重启一次宿主（dsh web 服务或 DeepSeek Harness 桌面版）；插件代码本身的改动
+ * 同样需要重启（发布组合里模块热重载是关的）。
  *
  * 刻意用 Node 而不是 PowerShell 实现：Windows PowerShell 5.1 会按控制台代码页来回
  * 转写非 ASCII 字面量，容易弄坏带中文的配置或路径。
@@ -298,9 +299,10 @@ export function install(options, write = defaultWrite) {
   } else {
     write('This is a junction to ' + SOURCE_DIR + ', so every edit here is already live.\n')
   }
-  write('The web profile reloads patches live, so the row mounts now.\n')
+  write('Hosts assemble the profile patch layer at startup, so restart the process that owns\n')
+  write('this profile to mount the row: the dsh web service, or the DeepSeek Harness desktop app.\n')
   write('Verify:  dsh --profile ' + options.profile + ' --dump-config | findstr ui-dsh-updater\n')
-  write('Restart the server to pick up plugin CODE changes (module reload is off).\n')
+  write('Plugin CODE changes also need a host restart (module reload is off in the release composition).\n')
   return { installedDir, patchPath, linked: !options.copy, ...(warning === undefined ? {} : { warning }) }
 }
 
@@ -322,7 +324,7 @@ export function uninstall(options, write = defaultWrite) {
   }
   const removedDir = removeInstalled(installedDir)
   write(removedDir ? 'removed ' + installedDir + '\n' : 'nothing installed at ' + installedDir + '\n')
-  write('Uninstalled. The row disappears on the next patch reload.\n')
+  write('Uninstalled. The row disappears the next time the host starts.\n')
   return { installedDir, patchPath, removedBlock, removedDir }
 }
 

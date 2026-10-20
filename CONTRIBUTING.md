@@ -53,7 +53,7 @@ git add lib
 - 产物里**不能出现本机绝对路径**：CSS 虚拟模块 id 用包内相对路径，`assertClientArtifact()` 会检查；
 - CSS Modules 类名前缀是固定的 `dshUpdater_`，**不要改回** lightningcss 的 `[hash]`（那个 hash 取自文件路径）；
 - CSS Modules 的类名映射按类名排序后再写入（lightningcss 的 exports 遍历顺序在进程间不稳定）；
-- 不要在构建里默认读取某个固定目录（例如 `D:\deepseek-harness`）：只有显式设置 `DSH_REPO` /
+- 不要在构建里默认读取某个固定目录（比如某台开发机上的 DSH checkout）：只有显式设置 `DSH_REPO` /
   `DSH_UPDATER_REPO` 时才把 commit 烙进产物。
 
 ### 3. 浏览器半部不要读外壳的图标导出
@@ -82,7 +82,7 @@ DSH 的图标名会随版本改名（0.1.6 `IconDownloadOutline16` → 0.1.7 `Ic
 | `tests/version.test.mjs` | semver 排序、`app-update.yml`/通道清单解析、`decideUpdate` 各分支 | 无（自己用 rolldown 打包 `src/version.ts`） |
 | `tests/panel-render.test.mjs` | 真挂载面板、真点按钮：弹窗出现、按钮存活、桌面版已是最新、版本不明 | 从 DSH 仓库取 react/react-dom/jsdom，取不到整组 skip |
 
-`DSH_UPDATER_VERIFY_DEPS=<仓库根>` 可以指定面板测试的依赖来源（默认 `D:\deepseek-harness`）。
+`DSH_UPDATER_VERIFY_DEPS=<仓库根>` 可以指定面板测试的依赖来源；未设置时依次尝试 `DSH_REPO` 和作者开发机上的 `<DSH checkout>`，都找不到就整组 skip（插件源码本身放在哪个目录都不影响它）。
 
 ## 提交信息
 

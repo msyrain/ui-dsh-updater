@@ -50,7 +50,11 @@ const cssStubPlugin = {
   },
 }
 
-/** 候选的 DSH 仓库根：显式环境变量优先，其次沿用构建脚本的约定。 */
+/**
+ * 候选的 DSH checkout 根：显式环境变量优先。最后那个值只是作者开发机上的回落值，
+ * 与插件源码放在哪个目录无关；换台机器请用环境变量指定，否则整组测试 skip。
+ * @returns {string} 候选根目录。
+ */
 function repoRoot() {
   return process.env.DSH_UPDATER_VERIFY_DEPS
     ?? process.env.DSH_REPO

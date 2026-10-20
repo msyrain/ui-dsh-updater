@@ -7,6 +7,10 @@
  *   `dsh desktop: plugin tree failed to load: dsh desktop: 1 entry did not activate
  *    @deepseek-ai/dsh-client-ui-dsh-updater: pending (waiting for service: webServer)`
  * without touching the running Desktop application.
+ *
+ * Archived: the layout this harness targets no longer exists in the current
+ * Desktop build. The checkout root is taken from `DSH_REPO` (no absolute path
+ * is baked in), so the file stays runnable if anyone revives it.
  */
 import { existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -15,7 +19,9 @@ import { loadProfileDirectory } from '@deepseek-ai/dsh-app-boot/src/profile.ts'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 
 const PROJECT = resolve(process.argv[2] ?? '')
-const DESKTOP_PATCH = resolve('D:/deepseek-harness/apps/desktop-host/config/desktop.cordis.patch.yml')
+/** DSH checkout 根：用 DSH_REPO 指明；未设置时按当前工作目录解析。 */
+const DSH_ROOT = resolve(process.env.DSH_REPO ?? process.cwd())
+const DESKTOP_PATCH = resolve(DSH_ROOT, 'apps/desktop-host/config/desktop.cordis.patch.yml')
 const ROOT_CONFIG_FILENAME = 'desktop.cordis.yml'
 
 function packageManifestPath(projectDir: string, packageName: string): string {
