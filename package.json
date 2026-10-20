@@ -1,7 +1,10 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-dsh-updater",
   "description": "DSH 版本检测与一键升级插件：自动检测最新版本，入口固定在设置上方。",
-  "version": "0.2.0",
+  "version": "0.2.1",
+  "engines": {
+    "node": ">=22"
+  },
   "author": "msyrain (https://github.com/msyrain)",
   "homepage": "https://github.com/msyrain/ui-dsh-updater#readme",
   "bugs": {
@@ -41,6 +44,9 @@
     "scripts/build.mjs",
     "scripts/package-files.mjs",
     "scripts/verify-bundle.mjs",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
     "README.md"
   ],
   "dsh": {
