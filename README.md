@@ -1,6 +1,8 @@
 # @deepseek-ai/dsh-client-ui-dsh-updater
 
-DSH 版本检测与一键升级插件，打包成一个**可直接安装的 DSH bundle 包**。
+[![CI](https://github.com/msyrain/ui-dsh-updater/actions/workflows/ci.yml/badge.svg)](https://github.com/msyrain/ui-dsh-updater/actions/workflows/ci.yml)
+
+DSH 版本检测与一键升级插件，打包成一个**可直接安装的 DSH bundle 包**。[更新日志](CHANGELOG.md) · [贡献指南](CONTRIBUTING.md)
 
 - 浏览器半部：在侧边栏底部注册 `sidebar.footer.action` 入口（渲染在设置之上），弹出面板显示「当前版本 / 最新版本 / 是否有更新」，并支持一键升级。
 - 主机半部：注册 `GET /api/dsh-updater/status` 与 `POST /api/dsh-updater/update` 两个路由（挂在 connection 的传输中立鉴权 Fetch 通道上）。
@@ -94,6 +96,8 @@ pnpm run typecheck  # 可选，需要 devDependencies
 
 构建不依赖 DSH 单体仓库的构建系统，只用到 `rolldown` 与 `lightningcss`。
 
+**构建是可复现的**：同一份源码在任何目录、任何机器构建出的 `lib/` 字节相同——产物里不写本机绝对路径、CSS 类名前缀固定为 `dshUpdater_`、类名映射按名字排序，且只有显式设置 `DSH_REPO` / `DSH_UPDATER_REPO` 时才会把 DSH checkout 的 commit 烙进浏览器半部。CI 的 `artifact` 作业因此能直接校验「已提交的 `lib/` 与源码一致」；`assertClientArtifact()` 还会在产物里发现绝对路径时让构建失败。
+
 `tests/panel-render.test.mjs` 用 rolldown + jsdom + react-dom 真挂载面板、真点按钮，验证「点入口 → 弹窗出现、入口按钮不消失」，以及「桌面版已是最新时不显示检测到新版本」「版本不明时既不谎报更新也不谎报最新」。它的三个依赖取自 DSH 仓库（本包不为此新增依赖）：默认 `<DSH_REPO 或 D:\deepseek-harness>\node_modules`，可用 `DSH_UPDATER_VERIFY_DEPS=<仓库根>` 指定；取不到就整组 skip，不影响其他机器上的 `pnpm test`。
 
 `tests/version.test.mjs` 不需要任何外部依赖：直接用 rolldown 打包 `src/version.ts` 来跑版本判定的纯逻辑（semver 预发布排序、app-update.yml/通道清单解析、`decideUpdate` 的各种「不能判断」分支）。
@@ -125,13 +129,17 @@ ui-dsh-updater/
 ├── sync.mjs                   副本模式的漂移检查与同步（--check 只报不写）
 ├── dsh-updater-run.ps1        随包分发的安全升级脚本（纯 ASCII）
 ├── tsconfig.json              编辑器/类型检查用（noEmit）
-├── scripts/build.mjs          独立打包（rolldown + lightningcss）
+├── .github/workflows/ci.yml   CI：离线测试矩阵 + 已提交产物一致性
+├── scripts/build.mjs          独立打包（rolldown + lightningcss，可复现）
 ├── scripts/package-files.mjs  包文件清单的唯一来源（安装器、同步器与 npm 共用）
 ├── scripts/verify-bundle.mjs  产物契约校验（纯 Node，无依赖）
 ├── tests/install.test.mjs     安装模式行为测试（node --test，只用临时 DSH home）
 ├── tests/version.test.mjs     版本判定纯逻辑测试（semver / 更新源清单 / 不误报）
 ├── tests/panel-render.test.mjs 面板渲染冒烟测试（jsdom + react-dom，缺依赖则 skip）
 ├── src/                       主机半部（含 version.ts 版本判定）+ import 伴生件 + 浏览器半部
+├── CHANGELOG.md               版本变更记录
+├── CONTRIBUTING.md            五条硬约束与开发回路
+├── LICENSE                    MIT
 └── repo-legacy/               旧「拷进 DSH 仓库」方式专用的构建配置（已归档）
 ```
 

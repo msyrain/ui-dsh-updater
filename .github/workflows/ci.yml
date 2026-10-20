@@ -1,0 +1,115 @@
+# Continuous integration.
+#
+# Two jobs, because they answer different questions and fail for different reasons:
+#
+#   test      â€?does the plugin still behave? Offline suite: no network, no DSH
+#               checkout, no credentials. The panel-rendering test needs react /
+#               react-dom / jsdom from a DSH checkout and skips itself when they
+#               are absent, which is exactly the case here.
+#   artifact  â€?is the committed browser bundle still what the source produces?
+#               lib/ is a build output that ships in the repository, so a source
+#               edit that forgets `pnpm run build` would put a stale bundle in
+#               front of users while every test still passed (the tests read the
+#               source, not the artifact).
+#
+# The artifact job runs on Windows on purpose: the build is byte-reproducible
+# across machines and directories (see scripts/build.mjs), but Windows is the
+# platform the committed bundle was produced and verified on, so a red run here
+# always means a stale artifact rather than a platform difference.
+#
+# pnpm is pinned here instead of through package.json's `packageManager` field:
+# pnpm 12 records that field as `packageManagerDependencies` inside the lockfile,
+# so adding it makes every `--frozen-lockfile` job fail until the lockfile is
+# regenerated. Pinning the version the lockfile was produced with keeps installs
+# deterministic without that coupling.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A second push supersedes the first: cancel the in-flight run rather than
+# letting stale commits occupy runners.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # 24 is what the project is developed on; 22 is the lower bound the
+        # engines field promises, so a syntax or API that only newer Node has
+        # fails here instead of in someone's editor.
+        node: ['22', '24']
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '12.3.4'
+
+      - name: Set up Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - name: Install (build scripts stay off; only the toolchain is needed)
+        run: pnpm install --ignore-scripts --frozen-lockfile
+
+      - name: Run the offline suite
+        run: pnpm test
+
+      - name: Check the committed bundle against its loader contract
+        run: pnpm run verify
+
+  artifact:
+    name: Committed browser bundle matches source
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '12.3.4'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Install the build toolchain
+        run: pnpm install --ignore-scripts --frozen-lockfile
+
+      - name: Rebuild lib/
+        run: pnpm run build
+
+      - name: Fail when lib/ differs from the committed artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain -- lib)" ]; then
+            git status --porcelain -- lib
+            git diff -- lib
+            echo "::error::lib/ is stale: run 'pnpm run build' and commit the result"
+            exit 1
+          fi
+          echo "lib/ matches the source"
